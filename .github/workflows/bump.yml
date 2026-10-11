@@ -1,0 +1,57 @@
+name: Bump
+
+# Once a day Scoop's checkver looks for a newer GitHub release of each app and
+# rewrites its manifest through `autoupdate` (version, URL, hash from the
+# release's .sha256). Changed manifests are installed and run like Tests does,
+# and pushed only when they pass; a failure leaves main alone and fails the run.
+on:
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bump
+
+jobs:
+  bump:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Scoop
+        run: |
+          Invoke-RestMethod https://get.scoop.sh -OutFile "$env:RUNNER_TEMP\install-scoop.ps1"
+          & "$env:RUNNER_TEMP\install-scoop.ps1" -RunAsAdmin
+          "$env:USERPROFILE\scoop\shims" >> $env:GITHUB_PATH
+      - name: Check for new versions
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          & "$env:USERPROFILE\scoop\apps\scoop\current\bin\checkver.ps1" -App * -Dir "$PWD\bucket" -Update
+          git status --short
+      - name: Install and run what changed
+        run: |
+          $changed = git diff --name-only -- bucket
+          foreach ($manifest in $changed) {
+            scoop install $manifest
+            if ($LASTEXITCODE) { throw "scoop install $manifest failed" }
+            $app = [IO.Path]::GetFileNameWithoutExtension($manifest)
+            & $app --version
+            if ($LASTEXITCODE) { throw "$app --version failed" }
+          }
+      - name: Commit and push
+        run: |
+          $changed = git diff --name-only -- bucket
+          if (-not $changed) { "Nothing to push."; exit 0 }
+          foreach ($manifest in $changed) {
+            $version = (Get-Content $manifest -Raw | ConvertFrom-Json).version
+            git add $manifest
+            git -c user.name="Huseynteymurzade28" -c user.email="159074293+Huseynteymurzade28@users.noreply.github.com" `
+              commit -m "$([IO.Path]::GetFileNameWithoutExtension($manifest)) $version"
+          }
+          if ($env:GITHUB_REF_NAME -eq 'main') { git push origin HEAD:main } else { git log --oneline -5; "Not main: leaving these unpushed." }

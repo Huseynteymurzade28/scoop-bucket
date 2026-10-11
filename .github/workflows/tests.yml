@@ -1,0 +1,31 @@
+name: Tests
+
+# Installs every manifest with Scoop on a fresh Windows runner and runs it.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  install:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Scoop
+        run: |
+          Invoke-RestMethod https://get.scoop.sh -OutFile "$env:RUNNER_TEMP\install-scoop.ps1"
+          & "$env:RUNNER_TEMP\install-scoop.ps1" -RunAsAdmin
+          "$env:USERPROFILE\scoop\shims" >> $env:GITHUB_PATH
+      - name: Install the manifests
+        run: Get-ChildItem bucket\*.json | ForEach-Object { scoop install $_.FullName; if ($LASTEXITCODE) { throw "scoop install $($_.Name) failed" } }
+      # Grows the rind and compiles a document that needs a package outside it.
+      - name: pomtex compiles a document
+        run: |
+          pomtex --version
+          Set-Content hello.tex '\documentclass{article}', '\usepackage{siunitx}', '\begin{document}', 'Hello from Scoop: \qty{3}{\metre}.', '\end{document}'
+          pomtex build hello.tex
+          if (-not (Test-Path hello.pdf)) { throw 'no PDF' }
