@@ -38,7 +38,8 @@ jobs:
         run: |
           $changed = git diff --name-only -- bucket
           foreach ($manifest in $changed) {
-            scoop install $manifest
+            # A relative "bucket/x.json" would read as app x.json in a bucket named bucket.
+            scoop install (Resolve-Path $manifest).Path
             if ($LASTEXITCODE) { throw "scoop install $manifest failed" }
             $app = [IO.Path]::GetFileNameWithoutExtension($manifest)
             & $app --version
