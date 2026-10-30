@@ -41,7 +41,9 @@ jobs:
             # A relative "bucket/x.json" would read as app x.json in a bucket named bucket.
             scoop install (Resolve-Path $manifest).Path
             if ($LASTEXITCODE) { throw "scoop install $manifest failed" }
-            $app = [IO.Path]::GetFileNameWithoutExtension($manifest)
+            # The command is the manifest's bin, which is not always the app's
+            # name (butaglyph installs buta).
+            $app = [IO.Path]::GetFileNameWithoutExtension((Get-Content $manifest -Raw | ConvertFrom-Json).bin)
             & $app --version
             if ($LASTEXITCODE) { throw "$app --version failed" }
           }

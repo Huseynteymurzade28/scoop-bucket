@@ -9,6 +9,8 @@ scoop install huseynteymurzade28/pomtex
 
 | App | |
 | --- | --- |
+| [butaglyph](https://github.com/Huseynteymurzade28/butaglyph) | Fast prompt for PowerShell, bash, zsh and fish (the command is `buta`) |
+| [pokeductor](https://github.com/Huseynteymurzade28/pokeductor) | Terminal Pokedex and evolution analyzer |
 | [pomtex](https://github.com/Huseynteymurzade28/pomtex) | On-demand LaTeX: a portable TeX kernel that installs CTAN packages only when a document needs them |
 | [tuiba](https://github.com/Huseynteymurzade28/tuiba) | Game Boy Advance emulator running in your terminal |
 
